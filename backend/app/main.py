@@ -36,3 +36,6 @@ app.include_router(students.router, prefix="/students", tags=["Students"])
 
 # Teachers endpoints
 app.include_router(teachers.router, prefix="/teachers", tags=["Teachers"])
+
+# Locations endpoints
+app.include_router(locations.router, prefix="/locations", tags=["Locations"])

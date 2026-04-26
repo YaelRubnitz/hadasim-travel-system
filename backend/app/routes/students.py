@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from backend.app.schemas.student_schema import StudentRead
 from sqlmodel import Session
 
 from app.database.db import get_session
@@ -13,7 +14,7 @@ from app.auth.auth import get_current_teacher
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=list[StudentRead])
 def read_students(
     session: Session = Depends(get_session),
     teacher = Depends(get_current_teacher)
@@ -21,7 +22,7 @@ def read_students(
     return get_all_students(session)
 
 
-@router.get("/my-class")
+@router.get("/my-class", response_model=list[StudentRead])
 def read_my_class_students(
     session: Session = Depends(get_session),
     teacher = Depends(get_current_teacher)
@@ -29,7 +30,7 @@ def read_my_class_students(
     return get_students_by_class(session, teacher.class_name)
 
 
-@router.get("/{tz}")
+@router.get("/{tz}", response_model=StudentRead)
 def read_student(
     tz: str,
     session: Session = Depends(get_session),
@@ -41,7 +42,6 @@ def read_student(
     return student
 
 
-
-@router.post("/")
+@router.post("/", response_model=StudentRead)
 def create_student(student: dict, session: Session = Depends(get_session), teacher = Depends(get_current_teacher)):
     return create_student_service(session, student)

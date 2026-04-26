@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from backend.app.schemas.teacher_schemas import TeacherRead
 from sqlmodel import Session
 
 from app.database.db import get_session
@@ -12,7 +13,7 @@ from app.auth.auth import get_current_teacher
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=list[TeacherRead])
 def read_teachers(
     session: Session = Depends(get_session),
     teacher = Depends(get_current_teacher)
@@ -20,7 +21,7 @@ def read_teachers(
     return get_all_teachers(session)
 
 
-@router.get("/{tz}")
+@router.get("/{tz}", response_model=TeacherRead)
 def read_teacher(
     tz: str,
     session: Session = Depends(get_session),
@@ -33,6 +34,6 @@ def read_teacher(
 
 
 #
-@router.post("/")
+@router.post("/", response_model=TeacherRead)
 def create_teacher(teacher: dict, session: Session = Depends(get_session),current_user = Depends(get_current_teacher)):
     return create_teacher_service(session, teacher)
