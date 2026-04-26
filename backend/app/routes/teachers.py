@@ -5,7 +5,7 @@ from app.database.db import get_session
 from app.services.teachers_service import (
     create_teacher_service,
     get_all_teachers,
-    get_teacher_by_id
+    get_teacher_by_tz
 )
 from app.auth.auth import get_current_teacher
 
@@ -20,17 +20,19 @@ def read_teachers(
     return get_all_teachers(session)
 
 
-@router.get("/{teacher_id}")
+@router.get("/{tz}")
 def read_teacher(
-    teacher_id: int,
+    tz: str,
     session: Session = Depends(get_session),
     teacher = Depends(get_current_teacher)
 ):
-    result = get_teacher_by_id(session, teacher_id)
+    result = get_teacher_by_tz(session, tz)
     if not result:
         raise HTTPException(status_code=404)
     return result
 
+
+#
 @router.post("/")
-def create_teacher(teacher: dict, session: Session = Depends(get_session)):
+def create_teacher(teacher: dict, session: Session = Depends(get_session),current_user = Depends(get_current_teacher)):
     return create_teacher_service(session, teacher)
