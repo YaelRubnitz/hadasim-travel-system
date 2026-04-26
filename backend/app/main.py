@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.database.db import init_db
-from app.routes import students, teachers
+from app.routes import students, teachers, locations
 from app.auth.auth import router as auth_router
 
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from backend.app.schemas.student_schema import StudentRead
+from app.schemas.student_schema import StudentRead
 from sqlmodel import Session
 
 from app.database.db import get_session

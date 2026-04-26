@@ -2,7 +2,25 @@ from sqlmodel import Session, select, desc
 from app.models.location import LocationUpdate
 from app.services.students_service import get_student_by_tz 
 from fastapi import HTTPException, HTTPException
+from datetime import datetime, timedelta
 
+last_cleanup_time = datetime.utcnow()
+
+def cleanup_old_locations(session: Session, hours: int = 24):
+    global last_cleanup_time
+    
+    if datetime.utcnow() - last_cleanup_time < timedelta(hours=1):
+        return
+    try:
+        threshold = datetime.utcnow() - timedelta(hours=hours)
+        statement = delete(LocationUpdate).where(LocationUpdate.timestamp < threshold)
+        session.exec(statement)
+        session.commit()
+        
+        last_cleanup_time = datetime.utcnow()
+        print(f"Cleanup performed at {last_cleanup_time}")
+    except Exception as e:
+        print(f"Cleanup failed: {e}")
 
 def dmms_to_decimal(degrees: str, minutes: str, seconds: str) -> float:
     return float(degrees) + float(minutes) / 60 + float(seconds) / 3600

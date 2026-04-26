@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
-from backend.app.database.db import get_session
-from backend.app.schemas.location_schema import LocationRead
-from backend.app.services.locations_service import create_location_service, get_last_location_service, get_student_path_service
+from fastapi import APIRouter, Depends, BackgroundTasks
+from app.database.db import get_session
+from app.schemas.location_schema import LocationRead
+from app.services.locations_service import create_location_service, get_last_location_service, get_student_path_service, cleanup_old_locations
 from sqlmodel import Session
 from app.auth.auth import get_current_teacher
 
@@ -9,8 +9,9 @@ router = APIRouter()
 
 
 @router.post("/update" ,response_model = LocationRead)
-def update_location(location: dict, session: Session = Depends(get_session)):
+def update_location(location: dict ,background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     result = create_location_service(session, location)
+    background_tasks.add_task(cleanup_old_locations, session)
     return result
 
 @router.get("/{student_tz}/last-location", response_model = LocationRead)
