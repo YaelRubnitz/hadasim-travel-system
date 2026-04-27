@@ -40,7 +40,14 @@ def login(
         samesite="lax",
         secure=False 
     )
-    return {"message": "Success"}
+
+    return {
+       # "id": teacher.id,
+        "first_name": teacher.first_name,
+        "last_name": teacher.last_name,
+        "tz": teacher.tz,
+        "class_name": teacher.class_name
+        }
 
 def get_current_teacher(request: Request, session: Session = Depends(get_session)):
     token = request.cookies.get("access_token")

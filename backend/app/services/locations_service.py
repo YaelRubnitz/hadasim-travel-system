@@ -1,8 +1,9 @@
-from sqlmodel import Session, select, desc
+from sqlmodel import Session, select, desc, func, and_
 from app.models.location import LocationUpdate
 from app.services.students_service import get_student_by_tz 
 from fastapi import HTTPException, HTTPException
 from datetime import datetime, timedelta
+from app.models.student import Student
 
 last_cleanup_time = datetime.utcnow()
 
@@ -63,3 +64,26 @@ def get_student_path_service(session: Session, student_tz: str):
     statement = select(LocationUpdate).where(LocationUpdate.student_tz == student_tz).order_by(LocationUpdate.timestamp).limit(20)
     locations = session.exec(statement).all()
     return locations
+
+
+def get_all_class_locations_service(session: Session, class_name: str):
+    student_statement = select(Student.tz).where(Student.class_name == class_name)
+    class_student_tzs = session.exec(student_statement).all()
+
+    if not class_student_tzs:
+        return []
+
+    last_locations = []
+
+    for tz in class_student_tzs:
+        location_statement = (
+            select(LocationUpdate)
+            .where(LocationUpdate.student_tz == tz)
+            .order_by(desc(LocationUpdate.timestamp)) # מיון מהחדש לישן
+            .limit(1)
+        )
+        result = session.exec(location_statement).first()
+        if result:
+            last_locations.append(result)
+
+    return last_locations
