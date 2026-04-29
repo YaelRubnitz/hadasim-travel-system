@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from app.database.db import get_session
 from app.schemas.location_schema import LocationRead
-from app.services.locations_service import create_location_service, get_last_location_service, get_student_path_service, cleanup_old_locations, get_all_class_locations_service
+from app.services.locations_service import create_location_service, get_far_students_service, get_last_location_service, get_student_path_service, cleanup_old_locations, get_all_class_locations_service
+from app.models.teacher import Teacher
 from sqlmodel import Session
 from app.auth.auth import get_current_teacher
 
@@ -29,3 +30,11 @@ def get_class_locations(
     teacher = Depends(get_current_teacher)
 ):
     return get_all_class_locations_service(session, teacher.class_name)
+
+@router.get("/far-students")
+def get_far_students(
+    session: Session = Depends(get_session), 
+    teacher = Depends(get_current_teacher)
+):
+  
+    return get_far_students_service(session, teacher)   

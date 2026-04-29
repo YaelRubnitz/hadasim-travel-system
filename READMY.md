@@ -11,10 +11,19 @@
 - ניהול תלמידות ומורות
 - שליפת מידע דרך API
 - צפייה במיקומי תלמידות בזמן אמת על גבי מפה
+- בדיקת תלמידות שהתרחקו 
 
 המערכת מבוססת על ארכיטקטורת Client-Server ומורכבת מ־Backend ו־Frontend.
 
 ---
+
+### ✨ Key Features
+- **DMS Integration:** תמיכה מלאה בקבלת קואורדינטות בפורמט צבאי (DMS) והמרתן למערכת עשרונית.
+-**Smart Distance Logic (Bonus):** אלגוריתם המחשב מרחק אווירי בזמן אמת ומספק התראות ויזואליות על תלמידות שנמצאות מעל 3 ק"מ מהמורה.
+- **Real-time Monitoring:** מעקב חי אחרי מיקומי תלמידות על גבי מפת OpenLayers.
+- **DMS Conversion:** לוגיקה ייעודית להמרת קואורדינטות ממעלות/דקות/שניות (DMS) לערכים עשרוניים.
+- **Distance Analytics (Bonus):** חישוב מרחק אוטונומי המתריע על תלמידות שחורגות מרדיוס של 3 ק"מ מהמורה המלווה.
+- **Auto-Sync:** סנכרון נתונים אוטומטי בין ה-Backend ל-Frontend ללא צורך ברענון ידני.
 
 ## 🚀 הרצה והתקנה (Docker)
 
@@ -60,6 +69,7 @@ POST /locations/update Update Location
 GET /locations/{student_tz}/last-location
 GET /locations/{student_tz}/path
 GET /locations/class-last-locations
+GET /locations/far-students
 
 ### הרשאות
 רק מורה יכולה לגשת ל־API
@@ -77,17 +87,13 @@ GET /locations/class-last-locations
 
 ###  טכנלוגיות ושפות 
 
-Backend: FastAPI (Python) - שרת מהיר, אסינכרוני וקל לתיעוד.
+Backend: Python (FastAPI), SQLModel (Pydantic + SQLAlchemy).
 
-Frontend: React + Vite - ממשק משתמש מודרני, תגובתי ומהיר.
+Frontend: React (Vite), Axios, OpenLayers (Map Integration).
 
-Database: PostgreSQL - מסד נתונים רלציוני חזק לאחסון מידע מובנה ומיקומים.
+DevOps: Docker & Docker Compose.
 
-Containerization: Docker & Docker Compose - לניהול תשתיות אחיד.
-
-Maps: Leaflet / React-Leaflet - להצגת נתונים גאוגרפיים בזמן אמת.
-docker-compose.yml: הגדרות התזמור והקישוריות בין ה-Frontend, ה-Backend וה-Database.
-
+Database: SQLite (Relational storage for locations & users).
 
 ### 📦 מבנה הפרויקט
 /backend – שרת ה־API

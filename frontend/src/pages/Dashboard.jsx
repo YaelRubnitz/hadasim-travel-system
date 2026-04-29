@@ -7,31 +7,34 @@ const Dashboard = ({ teacher, onLogout }) => {
     const [myStudents, setMyStudents] = useState([]);
     const [allTeachers, setAllTeachers] = useState([]);
     const [allStudents, setAllStudents] = useState([]);
+    const [farStudents, setFarStudents] = useState([]);
     
     const [showMyStudents, setShowMyStudents] = useState(true);
     const [showAllTeachers, setShowAllTeachers] = useState(false);
     const [showAllStudents, setShowAllStudents] = useState(false);
+    const [showFarPanel, setShowFarPanel] = useState(false);
     
     const [message, setMessage] = useState({ text: '', type: '' });
-    
     const [searchTz, setSearchTz] = useState('');
     const [singleResult, setSingleResult] = useState(null);
 
     const [newStudent, setNewStudent] = useState({ tz: '', first_name: '', last_name: '' });
-    const [newTeacher, setNewTeacher] = useState({ id_number: '', first_name: '', last_name: '', class_name: '' });
+    const [newTeacher, setNewTeacher] = useState({ tz: '', first_name: '', last_name: '', class_name: '' });
 
     const showFeedback = (text, type = 'success') => {
         setMessage({ text, type });
         setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     };
 
-    const fetchData = async () => {
+    const fetchCoreData = async () => {
         try {
-            const [myClassRes, allTeachersRes, allStudentsRes, locationsRes] = await Promise.all([
+            // קריאה לכל הנתונים במקביל
+            const [myClassRes, allTeachersRes, allStudentsRes, locationsRes, farRes] = await Promise.all([
                 api.get('/students/my-class'),
                 api.get('/teachers/'),
                 api.get('/students/'),
-                api.get('/locations/class-last-locations')
+                api.get('/locations/class-last-locations'),
+                api.get('/locations/far-students')
             ]);
             
             const studentsWithLoc = myClassRes.data.map(s => {
@@ -42,21 +45,23 @@ const Dashboard = ({ teacher, onLogout }) => {
             setMyStudents(studentsWithLoc);
             setAllTeachers(allTeachersRes.data);
             setAllStudents(allStudentsRes.data);
-        } catch (err) { console.error("Error fetching data:", err); }
+            setFarStudents(farRes.data);
+
+            // אם יש תלמידות רחוקות והמורה במצב מפה - נפתח את הפאנל אוטומטית כהתראה
+            if (farRes.data.length > 0 && view === 'map') {
+                setShowFarPanel(true);
+            }
+        } catch (err) {
+            console.error("Data fetch failed", err);
+        }
     };
 
+    // רענון אוטומטי כל דקה
     useEffect(() => {
-        fetchData(); 
-
-       const interval = setInterval(() => {
-            fetchData(); 
-        }, 60000); 
-
-        return () => {
-            clearInterval(interval);
-        };
-    }, []); 
-  
+        fetchCoreData(); 
+        const ticker = setInterval(fetchCoreData, 60000); 
+        return () => clearInterval(ticker);
+    }, [view]); // המערכת תתרענן גם כשמחליפים מצב תצוגה
 
     const handleSearch = async () => {
         if (!searchTz) return;
@@ -82,24 +87,23 @@ const Dashboard = ({ teacher, onLogout }) => {
         try {
             await api.post('/students/', { ...newStudent, class_name: teacher.class_name });
             setNewStudent({ tz: '', first_name: '', last_name: '' });
-            fetchData();
+            fetchCoreData();
             showFeedback("התלמידה נוספה בהצלחה!");
-        } catch (err) { showFeedback("שגיאה בהוספת תלמידה", "error"); }
+        } catch (err) {
+            showFeedback("שגיאה בהוספת תלמידה", "error");
+        }
     };
 
     const handleAddTeacher = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/teachers/', {
-                tz: newTeacher.tz, 
-                first_name: newTeacher.first_name,
-                last_name: newTeacher.last_name,
-                class_name: newTeacher.class_name
-            });
+            await api.post('/teachers/', { ...newTeacher });
             setNewTeacher({ tz: '', first_name: '', last_name: '', class_name: '' });
-            fetchData();
+            fetchCoreData();
             showFeedback("המורה נוספ/ה בהצלחה!");
-        } catch (err) { showFeedback("שגיאה בהוספת מורה", "error"); }
+        } catch (err) {
+            showFeedback("שגיאה בהוספת מורה", "error");
+        }
     };
 
     return (
@@ -139,8 +143,8 @@ const Dashboard = ({ teacher, onLogout }) => {
                             <input placeholder="שם פרטי" style={inputStyle} value={newStudent.first_name} onChange={e => setNewStudent({...newStudent, first_name: e.target.value})} required />
                             <input placeholder="שם משפחה" style={inputStyle} value={newStudent.last_name} onChange={e => setNewStudent({...newStudent, last_name: e.target.value})} required />
                             <div style={{ position: 'relative' }}>
-                            <label style={{ fontSize: '12px', color: '#666' }}>כיתה (אוטומטי):</label>
-                            <input value={teacher?.class_name} readOnly style={{ ...inputStyle, background: '#e9ecef', cursor: 'not-allowed' }} />
+                                <label style={{ fontSize: '12px', color: '#666' }}>כיתה (אוטומטי):</label>
+                                <input value={teacher?.class_name} readOnly style={{ ...inputStyle, background: '#e9ecef', cursor: 'not-allowed' }} />
                             </div>
                             <button type="submit" style={submitBtnStyle}>הוסף תלמידה</button>
                         </form>
@@ -206,32 +210,92 @@ const Dashboard = ({ teacher, onLogout }) => {
                     </section>
                 </div>
             ) : (
-                <div style={mapWrapperStyle}>
-                    <MapComponent students={myStudents} />
+                /* --- תצוגת מפה ובונוס תלמידות רחוקות --- */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={mapWrapperStyle}>
+                        <MapComponent students={myStudents} />
+                    </div>
+
+                    {/* פאנל התראות מרחק נפתח/נסגר */}
+                    <section style={{ 
+                        ...cardStyle, 
+                        borderColor: farStudents.length > 0 ? '#dc3545' : '#eee', 
+                        width: '100%',
+                        transition: 'all 0.3s ease'
+                    }}>
+                        <button 
+                            onClick={() => setShowFarPanel(!showFarPanel)} 
+                            style={{ 
+                                ...toggleBtnStyle, 
+                                color: farStudents.length > 0 ? '#dc3545' : '#333',
+                                backgroundColor: farStudents.length > 0 ? '#fff5f5' : '#f8f9fa'
+                            }}
+                        >
+                            {showFarPanel ? '🔼 סגור רשימת חריגות מרחק' : `🔽 הצג תלמידות מחוץ לטווח (${farStudents.length})`}
+                            {farStudents.length > 0 && " ⚠️"}
+                        </button>
+
+                        {showFarPanel && (
+                            <div style={expandedListStyle}>
+                                {farStudents.length === 0 ? (
+                                    <p style={{ color: '#28a745', textAlign: 'center', padding: '20px' }}>
+                                        כל התלמידות בטווח תקין (עד 3 ק"מ מהמורה).
+                                    </p>
+                                ) : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+                                            <thead>
+                                                <tr style={{ borderBottom: '2px solid #eee' }}>
+                                                    <th style={{ padding: '12px' }}>תלמידה</th>
+                                                    <th style={{ padding: '12px' }}>מרחק מהמורה</th>
+                                                    <th style={{ padding: '12px' }}>מיקום (Lat, Lng)</th>
+                                                    <th style={{ padding: '12px' }}>עדכון אחרון</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {farStudents.map(s => (
+                                                    <tr key={s.student_tz} style={{ borderBottom: '1px solid #f8f9fa', background: '#fff' }}>
+                                                        <td style={{ padding: '12px', fontWeight: 'bold' }}>{s.first_name} {s.last_name}</td>
+                                                        <td style={{ padding: '12px', color: '#dc3545', fontWeight: 'bold' }}>{s.distance} ק"מ</td>
+                                                        <td style={{ padding: '12px', fontSize: '12px', color: '#666' }}>
+                                                            {s.latitude?.toFixed(5)}, {s.longitude?.toFixed(5)}
+                                                        </td>
+                                                        <td style={{ padding: '12px', fontSize: '13px' }}>
+                                                            {new Date(s.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </section>
                 </div>
             )}
         </div>
     );
 };
 
-// Styles (נשארים בדיוק כפי שהיו)
-const containerStyle = { maxWidth: '1100px', margin: 'auto', padding: '20px', direction: 'rtl', fontFamily: 'Arial' };
-const feedbackStyle = { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '10px 25px', borderRadius: '8px', zIndex: 1000, fontWeight: 'bold', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' };
+// --- Styles ---
+const containerStyle = { maxWidth: '1100px', margin: 'auto', padding: '20px', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' };
+const feedbackStyle = { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '10px 25px', borderRadius: '8px', zIndex: 1000, fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
 const headerStyle = { borderBottom: '2px solid #eee', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '15px' };
-const logoutBtnStyle = { background: '#ff4444', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' };
+const logoutBtnStyle = { background: '#dc3545', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', fontWeight: '500' };
 const navStyle = { marginBottom: '25px', display: 'flex', gap: '10px' };
-const navBtnStyle = { flex: 1, padding: '15px', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' };
+const navBtnStyle = { flex: 1, padding: '15px', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' };
 const gridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' };
-const cardStyle = { background: '#f9f9f9', padding: '25px', borderRadius: '12px', border: '1px solid #eee', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' };
-const sectionTitleStyle = { marginTop: 0, borderBottom: '2px solid #007bff', display: 'inline-block', paddingBottom: '5px' };
-const inputStyle = { display: 'block', width: '100%', padding: '12px', marginBottom: '12px', border: '1px solid #ccc', borderRadius: '6px', boxSizing: 'border-box' };
-const submitBtnStyle = { width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
-const listContainerStyle = { background: 'white', border: '1px solid #eee', padding: '20px', borderRadius: '12px' };
-const listItemStyle = { padding: '10px 0', borderBottom: '1px solid #f1f1f1' };
-const toggleBtnStyle = { width: '100%', padding: '10px', marginTop: '10px', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', textAlign: 'right', fontWeight: 'bold' };
-const expandedListStyle = { marginTop: '10px', padding: '10px', maxHeight: '200px', overflowY: 'auto', border: '1px solid #f0f0f0' };
-const searchBtnStyle = { background: '#333', color: 'white', border: 'none', padding: '0 20px', borderRadius: '6px', cursor: 'pointer' };
-const resultCardStyle = { background: '#e7f3ff', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #b3d7ff' };
-const mapWrapperStyle = { height: '600px', width: '100%', borderRadius: '15px', overflow: 'hidden', border: '2px solid #ddd' };
+const cardStyle = { background: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #eee', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' };
+const sectionTitleStyle = { marginTop: 0, borderBottom: '2px solid #007bff', display: 'inline-block', paddingBottom: '5px', marginBottom: '20px' };
+const inputStyle = { display: 'block', width: '100%', padding: '12px', marginBottom: '12px', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box', fontSize: '14px' };
+const submitBtnStyle = { width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' };
+const listContainerStyle = { background: '#fff', border: '1px solid #eee', padding: '20px', borderRadius: '12px' };
+const listItemStyle = { padding: '10px 0', borderBottom: '1px solid #f8f9fa' };
+const toggleBtnStyle = { width: '100%', padding: '12px', marginTop: '10px', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', textAlign: 'right', fontWeight: '600' };
+const expandedListStyle = { marginTop: '10px', padding: '10px', maxHeight: '300px', overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: '6px' };
+const searchBtnStyle = { background: '#343a40', color: 'white', border: 'none', padding: '0 20px', borderRadius: '6px', cursor: 'pointer' };
+const resultCardStyle = { background: '#e7f3ff', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #b3d7ff', fontSize: '14px' };
+const mapWrapperStyle = { height: '550px', width: '100%', borderRadius: '15px', overflow: 'hidden', border: '1px solid #ddd', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' };
 
 export default Dashboard;
