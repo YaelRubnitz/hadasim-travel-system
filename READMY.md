@@ -42,6 +42,7 @@ git clone https://github.com/YOUR_USERNAME/hadasim-travel-system.git
 cd hadasim-travel-system
 docker-compose up --build
 ```
+על מנת להכניס את המורה הראשונה נאלץ להוסיף ישירות לבסיס נתונים, או שניצור משתמש אדמין שיוכל להכניס את המורה 
 
 ---
 
