@@ -1,4 +1,4 @@
-from sqlmodel import Session, select, desc, func, and_
+from sqlmodel import Session, select, desc, func, and_, delete
 from app.models.location import LocationUpdate
 from app.services.students_service import get_student_by_tz 
 from app.services.teachers_service import get_teacher_by_tz
@@ -77,7 +77,14 @@ def create_location_service(session: Session, data: dict):
     except KeyError:
         raise HTTPException(status_code=400, detail="Invalid coordinates format")
 
-
+def get_last_location_by_tz(session, tz):
+    return session.exec(
+        select(LocationUpdate)
+        .where(LocationUpdate.student_tz == tz)
+        .order_by(desc(LocationUpdate.timestamp))
+    ).first()
+     
+    
 def get_last_location_service(session: Session, tz: str):
     student = session.exec(select(Student).where(Student.tz == tz)).first()
     teacher = session.exec(select(Teacher).where(Teacher.tz == tz)).first()
@@ -85,12 +92,8 @@ def get_last_location_service(session: Session, tz: str):
     if not student and not teacher:
         raise HTTPException(status_code=404, detail="User not found in Students or Teachers")
 
-    statement = (
-        select(LocationUpdate)
-        .where(LocationUpdate.student_tz == tz)
-        .order_by(desc(LocationUpdate.timestamp))
-    )
-    location = session.exec(statement).first()
+
+    location = get_last_location_by_tz(session, tz)
     
     if not location:
         raise HTTPException(status_code=404, detail="Location not found for this user")
@@ -115,13 +118,7 @@ def get_all_class_locations_service(session: Session, class_name: str):
     last_locations = []
 
     for tz in class_student_tzs:
-        location_statement = (
-            select(LocationUpdate)
-            .where(LocationUpdate.student_tz == tz)
-            .order_by(desc(LocationUpdate.timestamp)) # מיון מהחדש לישן
-            .limit(1)
-        )
-        result = session.exec(location_statement).first()
+        result = get_last_location_by_tz(session, tz)
         if result:
             last_locations.append(result)
 

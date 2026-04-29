@@ -3,7 +3,7 @@ from sqlmodel import create_engine, SQLModel, Session
 
 # DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:Yr214980260@localhost:5432/travel_db")
 # engine = create_engine(DATABASE_URL, echo=True)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://admin:secret_pass@localhost:5432/travel_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/travel_db")
 engine = create_engine(DATABASE_URL)
 
 def init_db():

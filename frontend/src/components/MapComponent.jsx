@@ -14,7 +14,6 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// רכיב עזר פנימי לעדכון מרכז המפה מבלי לרנדר הכל מחדש
 const MapUpdater = ({ center }) => {
     const map = useMap();
     useEffect(() => {

@@ -47,7 +47,6 @@ const Dashboard = ({ teacher, onLogout }) => {
             setAllStudents(allStudentsRes.data);
             setFarStudents(farRes.data);
 
-            // אם יש תלמידות רחוקות והמורה במצב מפה - נפתח את הפאנל אוטומטית כהתראה
             if (farRes.data.length > 0 && view === 'map') {
                 setShowFarPanel(true);
             }
@@ -56,12 +55,11 @@ const Dashboard = ({ teacher, onLogout }) => {
         }
     };
 
-    // רענון אוטומטי כל דקה
     useEffect(() => {
         fetchCoreData(); 
         const ticker = setInterval(fetchCoreData, 60000); 
         return () => clearInterval(ticker);
-    }, [view]); // המערכת תתרענן גם כשמחליפים מצב תצוגה
+    }, [view]); 
 
     const handleSearch = async () => {
         if (!searchTz) return;
@@ -210,7 +208,6 @@ const Dashboard = ({ teacher, onLogout }) => {
                     </section>
                 </div>
             ) : (
-                /* --- תצוגת מפה ובונוס תלמידות רחוקות --- */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div style={mapWrapperStyle}>
                         <MapComponent students={myStudents} />
