@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 from app.database.db import get_session
 from app.schemas.location_schema import LocationRead
 from app.services.locations_service import create_location_service, get_far_students_service, get_last_location_service, get_student_path_service, cleanup_old_locations, get_all_class_locations_service
-from app.models.teacher import Teacher
 from sqlmodel import Session
 from app.auth.auth import get_current_teacher
 

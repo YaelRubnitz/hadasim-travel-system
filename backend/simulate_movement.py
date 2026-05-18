@@ -4,10 +4,10 @@ import random
 from datetime import datetime, timezone
 
 BASE_URL = "http://localhost:8000"
-STUDENTS = [f"1234567{i:02d}" for i in range(1, 11)]
+STUDENTS = ["11111111"]
 
 def move_students():
-    print("🚗 סימולציית תנועה קיצונית התחילה...")
+    print(" סימולציית תנועה קיצונית התחילה...")
     
     while True:
         for tz in STUDENTS:
@@ -28,9 +28,9 @@ def move_students():
             try:
                 requests.post(f"{BASE_URL}/locations/update", json=payload)
             except Exception as e:
-                print(f"❌ שגיאה בחיבור לשרת: {e}")
+                print(f"שגיאה בחיבור לשרת: {e}")
 
-        print(f"🚀 בוצע עדכון לכולן ב-{datetime.now().strftime('%H:%M:%S')}. בדקי את המפה!")
+        print(f"בוצע עדכון לכולן ב-{datetime.now().strftime('%H:%M:%S')}. בדקי את המפה!")
         time.sleep(5)
 
 if __name__ == "__main__":

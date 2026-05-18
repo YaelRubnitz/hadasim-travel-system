@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.database.db import init_db
-from app.routes import students, teachers, locations
+from app.routes import students, teachers, locations, ai_routes
 from app.auth.auth import router as auth_router
 
 
@@ -39,3 +39,6 @@ app.include_router(teachers.router, prefix="/teachers", tags=["Teachers"])
 
 # Locations endpoints
 app.include_router(locations.router, prefix="/locations", tags=["Locations"])
+
+# AI endpoints
+app.include_router(ai_routes.router, prefix="/ai", tags=["AI"])
